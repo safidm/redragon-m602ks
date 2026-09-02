@@ -12,6 +12,51 @@ MODE_BYTE_OFFSET = 69
 HIDIOCGFEATURE = 0xc2084807  # get state command
 HIDIOCSFEATURE = 0xc2084806  # set state command
 
+def set_mode(vendor_id, product_id, mode: int) -> None:
+    """
+    Changes the lighting mode to one of the following:
+    0:
+    1:
+    2:
+    3:
+    4:
+    5:
+    6:
+    7:
+    8:
+    9:
+    :param vendor_id:
+    :param product_id:
+    :param mode:
+    """
+    device = _build_device(vendor_id, product_id)
+    buf = _get_current_state(device)
+    buf[MODE_BYTE_OFFSET] = mode
+    fcntl.ioctl(device, HIDIOCSFEATURE, buf)
+
+
+def get_battery(vendor_id: int, product_id: int) -> int | None:
+    """
+    Returns an integer indicating the battery life
+    :param vendor_id: vendor id
+    :param product_id: product id
+    """
+    devices = hid.enumerate(vendor_id, product_id)
+    for d in devices:
+        try:
+            dev = hid.Device(path=d['path'])
+            dev.send_feature_report(bytes([0x05, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]))
+            time.sleep(0.15)
+            response = dev.get_feature_report(0x05, 8)
+            dev.close()
+            if response[1] == 0x90:
+                return response[3]
+        except Exception as e:
+            if 'Broken pipe' not in str(e):
+                print(e)
+            continue
+    return None
+
 
 def _build_device_battery(vendor_id: int, product_id: int) -> hid.device:
     """
@@ -49,30 +94,7 @@ def _build_device(vendor_id: int, product_id: int):
     raise FileNotFoundError('Device not found')
 
 
-def get_battery(vendor_id: int, product_id: int) -> int:
-    """
-    Returns an integer indicating the battery life
-    :param vendor_id: vendor id
-    :param product_id: product id
-    """
-    devices = hid.enumerate(vendor_id, product_id)
-    for d in devices:
-        try:
-            dev = hid.Device(path=d['path'])
-            dev.send_feature_report(bytes([0x05, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]))
-            time.sleep(0.15)
-            response = dev.get_feature_report(0x05, 8)
-            dev.close()
-            if response[1] == 0x90:
-                return response[3]
-        except Exception as e:
-            if 'Broken pipe' not in str(e):
-                print(e)
-            continue
-    return None
-
-
-def get_current_state(device) -> bytearray:
+def _get_current_state(device) -> bytearray:
     """
     Reads the current lighting and settings configuration from the mouse.
     Returns a 520-byte bytearray representing the full device state.
@@ -82,29 +104,6 @@ def get_current_state(device) -> bytearray:
     buf[0] = 0x08
     fcntl.ioctl(device, HIDIOCGFEATURE, buf)
     return buf
-
-
-def set_mode(vendor_id, product_id, mode: int) -> None:
-    """
-    Changes the lighting mode to one of the following:
-    0:
-    1:
-    2:
-    3:
-    4:
-    5:
-    6:
-    7:
-    8:
-    9:
-    :param vendor_id:
-    :param product_id:
-    :param mode:
-    """
-    device = _build_device(vendor_id, product_id)
-    buf = get_current_state(device)
-    buf[MODE_BYTE_OFFSET] = mode
-    fcntl.ioctl(device, HIDIOCSFEATURE, buf)
 
 
 battery = get_battery(VENDOR_ID, PRODUCT_ID)
