@@ -4,6 +4,7 @@ sys.path.insert(0, '/usr/lib/python3.14/site-packages')
 import hid
 import os
 import fcntl
+import time
 
 VENDOR_ID = 0x258a
 PRODUCT_ID = 0x002f
@@ -38,11 +39,10 @@ def _build_device(vendor_id: int, product_id: int):
     """
     for name in os.listdir('/sys/class/hidraw/'):
         uevent_path = f'/sys/class/hidraw/{name}/device/uevent'
-        print(uevent_path)
         try:
             with open(uevent_path, 'r') as f:
                 content = f.read()
-            if f'0000{vendor_id:04X}:0000{product_id:04X}' in content.upper() and 'input1' in content:
+            if f'0000{vendor_id:04X}:0000{product_id:04X}' in content.upper() and 'input0' in content:
                 return open(f'/dev/{name}', 'rb+', buffering=0)
         except FileNotFoundError:
             continue
@@ -55,16 +55,21 @@ def get_battery(vendor_id: int, product_id: int) -> int:
     :param vendor_id: vendor id
     :param product_id: product id
     """
-    device = _build_device_battery(vendor_id, product_id)
-    response = device.get_feature_report(0x05, 8)
-
-    # parsing the response to get the right byte
-    raw_byte = None
-    for i in range(len(response) - 3):
-        if response[i] == 0x05 and response[i + 1] == 0x90 and response[i + 2] == 0x11:
-            raw_byte = response[i + 3]
-    print(raw_byte, '%')
-    return raw_byte
+    devices = hid.enumerate(vendor_id, product_id)
+    for d in devices:
+        try:
+            dev = hid.Device(path=d['path'])
+            dev.send_feature_report(bytes([0x05, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]))
+            time.sleep(0.15)
+            response = dev.get_feature_report(0x05, 8)
+            dev.close()
+            if response[1] == 0x90:
+                return response[3]
+        except Exception as e:
+            if 'Broken pipe' not in str(e):
+                print(e)
+            continue
+    return None
 
 
 def get_current_state(device) -> bytearray:
@@ -102,6 +107,5 @@ def set_mode(vendor_id, product_id, mode: int) -> None:
     fcntl.ioctl(device, HIDIOCSFEATURE, buf)
 
 
-get_battery(VENDOR_ID, PRODUCT_ID)
-
-set_mode(VENDOR_ID, PRODUCT_ID, 4)
+battery = get_battery(VENDOR_ID, PRODUCT_ID)
+print(f"Battery: {battery}%")
