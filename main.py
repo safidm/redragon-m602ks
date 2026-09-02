@@ -1,14 +1,15 @@
 
 import sys
-from typing import TextIO
-
 sys.path.insert(0, '/usr/lib/python3.14/site-packages')
-from io import FileIO
 import hid
 import os
 import fcntl
 
+VENDOR_ID = 0x258a
+PRODUCT_ID = 0x002f
 MODE_BYTE_OFFSET = 69
+HIDIOCGFEATURE = 0xc2084807  # set state command
+HIDIOCSFEATURE = 0xc2084806  # get state command
 
 
 def build_device_battery(vendor_id: int, product_id: int) -> hid.device:
@@ -30,6 +31,7 @@ def build_device_battery(vendor_id: int, product_id: int) -> hid.device:
 
 def build_device(vendor_id: int, product_id: int) -> None | FileIO:
     """
+    currently broken
     Builds a __ to get the bytes for the lighting
     :param vendor_id: the vendor id of the mouse
     :param product_id: the product id of the mouse
@@ -62,7 +64,20 @@ def get_battery(device: hid.device) -> int:
     return raw_byte
 
 
-def set_mode(device, mode: int, payload) -> None:
+def get_current_state(device) -> bytearray:
+    """
+    Reads the current lighting and settings configuration from the mouse.
+    Returns a 520-byte bytearray representing the full device state,
+    :param device:
+    :return:
+    """
+    buf = bytearray(520)
+    buf[0] = 0x08
+    fcntl.ioctl(device, HIDIOCGFEATURE, buf)
+    return buf
+
+
+def set_mode(device, mode: int) -> None:
     """
     Changes the lighting mode to one of the following:
     0:
@@ -77,28 +92,16 @@ def set_mode(device, mode: int, payload) -> None:
     9:
     :param device:
     :param mode:
-    :param payload:
     """
-    payload[MODE_BYTE_OFFSET] = mode
-    size = len(payload)
-    HIDIOCSFEATURE = 0xc2084806
-    fcntl.ioctl(device, HIDIOCSFEATURE, payload)
+    buf = get_current_state(device)
+    buf[MODE_BYTE_OFFSET] = mode
+    fcntl.ioctl(device, HIDIOCSFEATURE, buf)
 
 
 '''dev = build_device_battery(VENDOR_ID, PRODUCT_ID)
 get_battery(dev)
 '''
 
-def get_current_state(device) -> str:
-    buf = bytearray(520)
-    buf[0] = 0x08
-    fcntl.ioctl(device, 0xc2084807, buf)
-    return buf.hex()
-
-
-VENDOR_ID = 0x258a
-PRODUCT_ID = 0x002f
 dev = open('/dev/hidraw5', 'rb+', buffering=0)
 
-state = get_current_state(dev)
-set_mode(state, 3)
+set_mode(dev, 6)
