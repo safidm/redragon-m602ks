@@ -9,10 +9,11 @@ import time
 VENDOR_ID = 0x258a
 PRODUCT_ID = 0x002f
 MODE_BYTE_OFFSET = 69
-HIDIOCGFEATURE = 0xc2084807  # get state command
-HIDIOCSFEATURE = 0xc2084806  # set state command
+HIDIOCGFEATURE = (3 << 30) | (ord('H') << 8) | 0x07 | (154 << 16)
+HIDIOCSFEATURE = (3 << 30) | (ord('H') << 8) | 0x06 | (520 << 16)
 
-def set_mode(vendor_id, product_id, mode: int) -> None:
+
+def set_mode(vendor_id: int, product_id: int, mode: int) -> None:
     """
     Changes the lighting mode to one of the following:
     0:
@@ -30,9 +31,23 @@ def set_mode(vendor_id, product_id, mode: int) -> None:
     :param mode:
     """
     device = _build_device(vendor_id, product_id)
+    _initialize_device(device)
     buf = _get_current_state(device)
     buf[MODE_BYTE_OFFSET] = mode
-    fcntl.ioctl(device, HIDIOCSFEATURE, buf)
+    buf[3] = 0x92  # write operation flag, required for SET_REPORT
+    write_buf = buf + bytearray(520 - len(buf))
+    fcntl.ioctl(device, HIDIOCSFEATURE, write_buf)
+
+
+def change_color(vendor_id, product_id, colour) -> None:
+    """
+
+    :param vendor_id: vendor id
+    :param product_id: product id
+    :param colour: colour code
+    """
+    device = _build_device(vendor_id, product_id)
+    buf = _get_current_state(device)
 
 
 def get_battery(vendor_id: int, product_id: int) -> int | None:
@@ -58,20 +73,17 @@ def get_battery(vendor_id: int, product_id: int) -> int | None:
     return None
 
 
-def _build_device_battery(vendor_id: int, product_id: int) -> hid.device:
+def _initialize_device(device) -> None:
     """
-    Returns a hid.device object for the get_battery function
-    :param vendor_id: vendor id
-    :param product_id: product id
+    Sends the initialization command to put the device in a receptive state.
+    Must be called before reading current state.
+    :param device: file descriptor for the hidraw interface
     """
-    devices = hid.enumerate(vendor_id, product_id)
-    target = None
-    for d in devices:
-        if d['usage_page'] == 0xFF00:
-            target = d
-            break
-    device = hid.Device(path=target['path'])
-    return device
+    buf = bytearray(8)
+    buf[0] = 0x05
+    buf[1] = 0x21
+    HIDIOCSFEATURE_8 = (3 << 30) | (ord('H') << 8) | 0x06 | (8 << 16)
+    fcntl.ioctl(device, HIDIOCSFEATURE_8, buf)
 
 
 def _build_device(vendor_id: int, product_id: int):
@@ -87,8 +99,9 @@ def _build_device(vendor_id: int, product_id: int):
         try:
             with open(uevent_path, 'r') as f:
                 content = f.read()
-            if f'0000{vendor_id:04X}:0000{product_id:04X}' in content.upper() and 'input0' in content:
-                return open(f'/dev/{name}', 'rb+', buffering=0)
+            if f'0000{vendor_id:04X}:0000{product_id:04X}' in content.upper() and 'input1' in content:
+                fd = open(f'/dev/{name}', 'rb+', buffering=0)
+                return fd
         except FileNotFoundError:
             continue
     raise FileNotFoundError('Device not found')
@@ -97,14 +110,25 @@ def _build_device(vendor_id: int, product_id: int):
 def _get_current_state(device) -> bytearray:
     """
     Reads the current lighting and settings configuration from the mouse.
-    Returns a 520-byte bytearray representing the full device state.
+    Returns a 154-byte bytearray representing the full device state.
     :param device:
     """
-    buf = bytearray(520)
+    buf = bytearray(154)
     buf[0] = 0x08
-    fcntl.ioctl(device, HIDIOCGFEATURE, buf)
+    fcntl.ioctl(device, HIDIOCGFEATURE, buf)  # 520 bytes
     return buf
 
 
-battery = get_battery(VENDOR_ID, PRODUCT_ID)
+
+'''battery = get_battery(VENDOR_ID, PRODUCT_ID)
 print(f"Battery: {battery}%")
+
+for i in range(10):
+    battery = get_battery(VENDOR_ID, PRODUCT_ID)
+    print(f"Battery: {battery}%")
+    set_mode(VENDOR_ID, PRODUCT_ID, i)
+    time.sleep(2)
+'''
+
+if __name__ == '__main__':
+    set_mode(VENDOR_ID, PRODUCT_ID, 0)
