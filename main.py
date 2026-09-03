@@ -8,7 +8,6 @@ import time
 
 VENDOR_ID = 0x258a
 PRODUCT_ID = 0x002f
-MODE_BYTE_OFFSET = 69
 HIDIOCGFEATURE = (3 << 30) | (ord('H') << 8) | 0x07 | (154 << 16)
 HIDIOCSFEATURE = (3 << 30) | (ord('H') << 8) | 0x06 | (520 << 16)
 
@@ -30,6 +29,7 @@ def set_mode(vendor_id: int, product_id: int, mode: int) -> None:
     :param product_id:
     :param mode:
     """
+    MODE_BYTE_OFFSET = 69
     device = _build_device(vendor_id, product_id)
     _initialize_device(device)
     buf = _get_current_state(device)
@@ -39,15 +39,25 @@ def set_mode(vendor_id: int, product_id: int, mode: int) -> None:
     fcntl.ioctl(device, HIDIOCSFEATURE, write_buf)
 
 
-def change_color(vendor_id, product_id, colour) -> None:
+def change_colour(vendor_id, product_id, colour: tuple) -> None:
     """
 
     :param vendor_id: vendor id
     :param product_id: product id
     :param colour: colour code
     """
+    MODE_BYTE_OFFSET = (73, 74, 75)
     device = _build_device(vendor_id, product_id)
+    _initialize_device(device)
     buf = _get_current_state(device)
+    print("Previous:", buf)
+    buf[MODE_BYTE_OFFSET[0]] = colour[0]
+    buf[MODE_BYTE_OFFSET[1]] = colour[1]
+    buf[MODE_BYTE_OFFSET[2]] = colour[2]
+    buf[3] = 0x92  # write operation flag, required for SET_REPORT
+    print("After:", buf)
+    write_buf = buf + bytearray(520 - len(buf))
+    fcntl.ioctl(device, HIDIOCSFEATURE, write_buf)
 
 
 def get_battery(vendor_id: int, product_id: int) -> int | None:
@@ -120,15 +130,8 @@ def _get_current_state(device) -> bytearray:
 
 
 
-'''battery = get_battery(VENDOR_ID, PRODUCT_ID)
-print(f"Battery: {battery}%")
 
-for i in range(10):
-    battery = get_battery(VENDOR_ID, PRODUCT_ID)
-    print(f"Battery: {battery}%")
-    set_mode(VENDOR_ID, PRODUCT_ID, i)
-    time.sleep(2)
-'''
 
 if __name__ == '__main__':
-    set_mode(VENDOR_ID, PRODUCT_ID, 0)
+    set_mode(VENDOR_ID, PRODUCT_ID, 2)
+    change_colour(VENDOR_ID, PRODUCT_ID, (255,255,255))
