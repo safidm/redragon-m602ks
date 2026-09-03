@@ -12,6 +12,15 @@ HIDIOCGFEATURE = (3 << 30) | (ord('H') << 8) | 0x07 | (154 << 16)
 HIDIOCSFEATURE = (3 << 30) | (ord('H') << 8) | 0x06 | (520 << 16)
 
 
+def startup_comms(vendor_id: int, product_id: int):
+    """
+    Setting up the app by initilizing the mouse and creating the FileIO device object
+    :param vendor_id:
+    :param product_id:
+    """
+
+
+
 def set_mode(vendor_id: int, product_id: int, mode: int) -> None:
     """
     Changes the lighting mode to one of the following:
@@ -94,6 +103,7 @@ def _initialize_device(device) -> None:
     buf[1] = 0x21
     HIDIOCSFEATURE_8 = (3 << 30) | (ord('H') << 8) | 0x06 | (8 << 16)
     fcntl.ioctl(device, HIDIOCSFEATURE_8, buf)
+    time.sleep(0.1)
 
 
 def _build_device(vendor_id: int, product_id: int):
@@ -133,5 +143,14 @@ def _get_current_state(device) -> bytearray:
 
 
 if __name__ == '__main__':
-    set_mode(VENDOR_ID, PRODUCT_ID, 2)
-    change_colour(VENDOR_ID, PRODUCT_ID, (255,255,255))
+    device = _build_device(VENDOR_ID, PRODUCT_ID)
+    _initialize_device(device)
+
+    buf = _get_current_state(device)
+    buf[3] = 0x92
+    buf[69] = 2  # mode
+    buf[73] = 1  # R
+    buf[74] = 0  # G
+    buf[75] = 2  # B
+    write_buf = buf + bytearray(520 - len(buf))
+    fcntl.ioctl(device, HIDIOCSFEATURE, write_buf)
