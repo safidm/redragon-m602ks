@@ -8,25 +8,26 @@ import time
 
 VENDOR_ID = 0x258a
 PRODUCT_ID = 0x002f
-HIDIOCGFEATURE = (3 << 30) | (ord('H') << 8) | 0x07 | (154 << 16)
-HIDIOCSFEATURE = (3 << 30) | (ord('H') << 8) | 0x06 | (520 << 16)
+HIDIOCSFEATURE = (3 << 30) | (ord('H') << 8) | 0x06 | (520 << 16)  # command to set feature
 
 
-def startup_comms(vendor_id: int, product_id: int):
+def initialize(vendor_id: int, product_id: int):
     """
-    Setting up the app by initilizing the mouse and creating the FileIO device object
-    :param vendor_id:
-    :param product_id:
+    Initializes the mouse and return a FileIO object representing the mouse device
+    :param vendor_id: vendor id
+    :param product_id: product id
     """
+    device = _build_device(vendor_id, product_id)
+    _initialize_device(device)
+    return device
 
 
-
-def set_mode(vendor_id: int, product_id: int, mode: int) -> None:
+def set_mode(device, mode: int) -> None:
     """
     Changes the lighting mode to one of the following:
-    0:
+    0: blank
     1:
-    2:
+    2: Solid colour
     3:
     4:
     5:
@@ -34,13 +35,10 @@ def set_mode(vendor_id: int, product_id: int, mode: int) -> None:
     7:
     8:
     9:
-    :param vendor_id:
-    :param product_id:
+    :param device: FileIO object representing the mouse
     :param mode:
     """
     MODE_BYTE_OFFSET = 69
-    device = _build_device(vendor_id, product_id)
-    _initialize_device(device)
     buf = _get_current_state(device)
     buf[MODE_BYTE_OFFSET] = mode
     buf[3] = 0x92  # write operation flag, required for SET_REPORT
@@ -48,16 +46,13 @@ def set_mode(vendor_id: int, product_id: int, mode: int) -> None:
     fcntl.ioctl(device, HIDIOCSFEATURE, write_buf)
 
 
-def change_colour(vendor_id, product_id, colour: tuple) -> None:
+def change_colour(device, colour: tuple) -> None:
     """
 
-    :param vendor_id: vendor id
-    :param product_id: product id
+    :param device: FileIO object representing the mouse
     :param colour: colour code
     """
     MODE_BYTE_OFFSET = (73, 74, 75)
-    device = _build_device(vendor_id, product_id)
-    _initialize_device(device)
     buf = _get_current_state(device)
     print("Previous:", buf)
     buf[MODE_BYTE_OFFSET[0]] = colour[0]
@@ -96,7 +91,7 @@ def _initialize_device(device) -> None:
     """
     Sends the initialization command to put the device in a receptive state.
     Must be called before reading current state.
-    :param device: file descriptor for the hidraw interface
+    :param device: FileIO object representing the mouse
     """
     buf = bytearray(8)
     buf[0] = 0x05
@@ -131,26 +126,15 @@ def _get_current_state(device) -> bytearray:
     """
     Reads the current lighting and settings configuration from the mouse.
     Returns a 154-byte bytearray representing the full device state.
-    :param device:
+    :param device: FileIO object representing the mouse
     """
+    HIDIOCGFEATURE = (3 << 30) | (ord('H') << 8) | 0x07 | (154 << 16)
     buf = bytearray(154)
     buf[0] = 0x08
     fcntl.ioctl(device, HIDIOCGFEATURE, buf)  # 520 bytes
     return buf
 
 
-
-
-
 if __name__ == '__main__':
-    device = _build_device(VENDOR_ID, PRODUCT_ID)
-    _initialize_device(device)
-
-    buf = _get_current_state(device)
-    buf[3] = 0x92
-    buf[69] = 2  # mode
-    buf[73] = 1  # R
-    buf[74] = 0  # G
-    buf[75] = 2  # B
-    write_buf = buf + bytearray(520 - len(buf))
-    fcntl.ioctl(device, HIDIOCSFEATURE, write_buf)
+    device = initialize(VENDOR_ID, PRODUCT_ID)
+    change_colour(device, (200, 255, 255))
