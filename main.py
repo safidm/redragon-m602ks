@@ -46,7 +46,7 @@ def set_mode(device, mode: int) -> None:
     fcntl.ioctl(device, HIDIOCSFEATURE, write_buf)
 
 
-def change_colour(device, colour: tuple) -> None:
+def set_colour(device, colour: tuple) -> None:
     """
 
     :param device: FileIO object representing the mouse
@@ -54,12 +54,10 @@ def change_colour(device, colour: tuple) -> None:
     """
     MODE_BYTE_OFFSET = (73, 74, 75)
     buf = _get_current_state(device)
-    print("Previous:", buf)
     buf[MODE_BYTE_OFFSET[0]] = colour[0]
     buf[MODE_BYTE_OFFSET[1]] = colour[1]
     buf[MODE_BYTE_OFFSET[2]] = colour[2]
     buf[3] = 0x92  # write operation flag, required for SET_REPORT
-    print("After:", buf)
     write_buf = buf + bytearray(520 - len(buf))
     fcntl.ioctl(device, HIDIOCSFEATURE, write_buf)
 
@@ -136,5 +134,5 @@ def _get_current_state(device) -> bytearray:
 
 
 if __name__ == '__main__':
-    device = initialize(VENDOR_ID, PRODUCT_ID)
-    change_colour(device, (200, 255, 255))
+    dev = initialize(VENDOR_ID, PRODUCT_ID)
+    set_colour(dev, (210, 210, 210))
