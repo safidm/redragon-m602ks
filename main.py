@@ -133,6 +133,33 @@ def _get_current_state(device) -> bytearray:
     return buf
 
 
+def set_macro(devce) -> None:
+    """
+
+    :param devce:
+    """
+    forward = (17, 16, 0, 0)
+    back = (17, 8, 0, 0)
+    three_click = (49, 1, 50, 3)
+    rgb_toggle = (80, 2, 0, 0)
+    disable = (80, 1, 0, 0)
+    dpi_plus = (65, 1, 0, 0)
+    dpi_minus = (65, 2, 0, 0)
+    dpi_loop = (65, 0, 0, 0)
+    play_pause = (34, 8, 0, 0)
+    next_track = (34, 1, 0, 0)
+    previous_track = (34, 2, 0, 0)
+
+
+
+
+
+
+
+
+def _build_macro_packet(device) -> bytearray:
+
+
 if __name__ == '__main__':
     dev = initialize(VENDOR_ID, PRODUCT_ID)
     set_colour(dev, (210, 210, 210))
