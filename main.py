@@ -127,6 +127,7 @@ def _get_current_state(device) -> bytearray:
     :param device: FileIO object representing the mouse
     """
     HIDIOCGFEATURE = (3 << 30) | (ord('H') << 8) | 0x07 | (154 << 16)
+    print(HIDIOCGFEATURE)
     buf = bytearray(154)
     buf[0] = 0x08
     fcntl.ioctl(device, HIDIOCGFEATURE, buf)  # 520 bytes
@@ -149,15 +150,8 @@ def set_macro(devce) -> None:
     play_pause = (34, 8, 0, 0)
     next_track = (34, 1, 0, 0)
     previous_track = (34, 2, 0, 0)
-
-
-
-
-
-
-
-
-def _build_macro_packet(device) -> bytearray:
+    custom_macro = [112, '', 1, 1]
+    return None
 
 
 if __name__ == '__main__':
