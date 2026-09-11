@@ -64,6 +64,7 @@ def _save_button_state(payload: bytearray) -> None:
 def set_button(vendor_id: int, product_id: int, button: str, action: str) -> None:
     """
     Assigns an action to a button and writes it to the mouse.
+
     :param vendor_id: vendor id
     :param product_id: product id
     :param button: button name (e.g. 'left_click', 'dpi_plus')
