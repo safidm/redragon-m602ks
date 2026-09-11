@@ -14,11 +14,11 @@ import time
 def get_battery(vendor_id: int, product_id: int) -> int | None:
     """
     Returns an integer indicating the battery life.
-    
+
     Args:
         vendor_id: USB vendor ID (0x258a)
         product_id: USB product ID (0x002f)
-        
+
     Returns:
         int | None: Battery percentage (0-100) or None if unable to read
     """
