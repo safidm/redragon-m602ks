@@ -45,7 +45,7 @@ def format_battery_display(percentage: int) -> str:
     """
     progress_bar = create_progress_bar(percentage)
 
-    return f"""🖱 Redragon M602KS
+    return f"""Battery
 {progress_bar} {percentage}%
 Status: OK"""
 

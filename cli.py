@@ -152,10 +152,7 @@ def main() -> int:
             return 0
         
         # Import command handlers (lazy import to avoid loading HID layer unnecessarily)
-        from commands.battery import handle_battery
-        from commands.lighting import handle_lighting
-        from commands.buttons import handle_buttons
-        from commands.sensitivity import handle_sensitivity
+        from commands import handle_battery, handle_lighting, handle_buttons, handle_sensitivity
         
         # Route to appropriate command handler
         if args.command == 'battery':
