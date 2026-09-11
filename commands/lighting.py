@@ -9,15 +9,15 @@ from main import initialize, set_mode, VENDOR_ID, PRODUCT_ID
 # Lighting modes with names and descriptions
 LIGHTING_MODES = {
     0: ("off", "Turns off all lighting"),
-    1: ("steady", "Solid constant color"),
-    2: ("breathing", "Smooth fade in and out"),
-    3: ("wave", "Color wave effect"),
-    4: ("reactive", "Responds to clicks"),
-    5: ("flashing", "Quick on/off pulses"),
-    6: ("disco", "Random color changes"),
-    7: ("rainbow", "Cycling rainbow effect"),
-    8: ("ripple", "Ripple effect from center"),
-    9: ("custom", "User-defined pattern")
+    1: ("colourful streaming", "Colours smoothly changing"),
+    2: ("steady", "Solid constant color"),
+    3: ("breathing", "Cycles through colours with a slow fade in/out"),
+    4: ("colourful tail", "Colour changes from the front to the back of the mouse"),
+    5: ("neon", "Slowly transitions between colours"),
+    6: ("colourful steady", "Steady stream of multiple colours"),
+    7: ("flicker", "Rapidly changes between different colours"),
+    8: ("star twinkle", "Randomly switches to colours in different parts of the mouse"),
+    9: ("wave", "Constantly changing steady stream of multiple colours")
 }
 
 
@@ -25,10 +25,10 @@ def handle_lighting(args):
     """
     Main handler for lighting command.
     Routes to mode or color handlers based on subcommand.
-    
+
     Args:
         args: Parsed command-line arguments from argparse
-        
+
     Returns:
         int: Exit code (0 for success)
     """
@@ -47,10 +47,10 @@ def handle_mode(args):
     Handler for lighting mode subcommand.
     If mode argument provided: set the mode
     If no argument: display available modes
-    
+
     Args:
         args: Parsed command-line arguments with optional mode_number attribute
-        
+
     Returns:
         int: Exit code (0 for success)
     """
@@ -81,7 +81,7 @@ def set_lighting_mode(mode: int):
     """
     Initializes device and calls set_mode.
     Displays success message with mode name.
-    
+
     Args:
         mode: Lighting mode number (0-9)
     """
@@ -106,10 +106,10 @@ def handle_color(args):
     Handler for lighting color subcommand.
     If RGB arguments provided: set the color
     If no arguments: display usage and examples
-    
+
     Args:
         args: Parsed command-line arguments with optional r, g, b attributes
-        
+
     Returns:
         int: Exit code (0 for success)
     """
@@ -119,12 +119,12 @@ def handle_color(args):
         if args.g is None or args.b is None:
             display_color_usage()
             return 0
-        
+
         set_lighting_color(args.r, args.g, args.b)
     else:
         # No arguments - display usage
         display_color_usage()
-    
+
     return 0
 
 
@@ -147,12 +147,12 @@ def set_lighting_color(r: int, g: int, b: int):
     """
     Validates RGB range, initializes device, calls set_colour.
     Displays success message with RGB values and color name if recognized.
-    
+
     Args:
         r: Red component (0-255)
         g: Green component (0-255)
         b: Blue component (0-255)
-        
+
     Raises:
         ValueError: If any RGB value is out of range
     """
@@ -172,14 +172,14 @@ def set_lighting_color(r: int, g: int, b: int):
             f"Invalid RGB value: {b}. All RGB values must be 0-255.\n"
             "Run 'python3 cli.py lighting color' for usage and examples."
         )
-    
+
     # Import set_colour from main
     from main import set_colour
-    
+
     # Initialize device and set color
     device = initialize(VENDOR_ID, PRODUCT_ID)
     set_colour(device, (r, g, b))
-    
+
     # Build success message
     color_name = get_color_name(r, g, b)
     if color_name:
@@ -191,12 +191,12 @@ def set_lighting_color(r: int, g: int, b: int):
 def get_color_name(r: int, g: int, b: int) -> str | None:
     """
     Returns human-readable name for common colors.
-    
+
     Args:
         r: Red component (0-255)
         g: Green component (0-255)
         b: Blue component (0-255)
-        
+
     Returns:
         str: Color name if recognized, None otherwise
     """
